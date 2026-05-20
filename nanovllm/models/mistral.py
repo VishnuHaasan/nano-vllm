@@ -3,7 +3,7 @@ from torch import nn
 import torch.distributed as dist
 from transformers import MistralConfig
 
-from nanovllm.layers.activation import SiluAndMul
+from nanovllm.layers.activation import ACTIVATION_MAPPING, SiluAndMul
 from nanovllm.layers.attention import Attention
 from nanovllm.layers.layernorm import RMSNorm
 from nanovllm.layers.linear import QKVParallelLinear, MergedColumnParallelLinear, RowParallelLinear
@@ -97,8 +97,7 @@ class MistralMLP(nn.Module):
             hidden_size,
             bias=False
         )
-        assert hidden_act == "silu"
-        self.act_fn = SiluAndMul()
+        self.act_fn = ACTIVATION_MAPPING[hidden_act]()
 
     def forward(self, x):
         gate_up = self.gate_up_proj(x)

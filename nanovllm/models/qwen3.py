@@ -107,8 +107,7 @@ class Qwen3MLP(nn.Module):
             hidden_size,
             bias=False,
         )
-        assert hidden_act == "silu"
-        self.act_fn = ACTIVATION_MAPPING[hidden_act]
+        self.act_fn = ACTIVATION_MAPPING[hidden_act]()
 
     def forward(self, x):
         gate_up = self.gate_up_proj(x)
