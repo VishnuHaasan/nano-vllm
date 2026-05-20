@@ -22,7 +22,7 @@ class GeluTanhAndMul(nn.Module):
     @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x, y = x.chunk(2, -1)
-        return F.gelu(x, approximate="tanh")
+        return F.gelu(x, approximate="tanh") * y
     
 ACTIVATION_MAPPING = {
     "silu": SiluAndMul,
