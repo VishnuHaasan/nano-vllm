@@ -1,3 +1,4 @@
+from more_itertools import sliding_window
 import torch
 from torch import nn
 import triton
@@ -48,6 +49,8 @@ class Attention(nn.Module):
         head_dim,
         scale,
         num_kv_heads,
+        softcap = 0.0,
+        sliding_window: int = -1
     ):
         super().__init__()
         self.num_heads = num_heads
@@ -55,6 +58,8 @@ class Attention(nn.Module):
         self.scale = scale
         self.num_kv_heads = num_kv_heads
         self.k_cache = self.v_cache = torch.tensor([])
+        self.softcap = softcap
+        self.sliding_window = (sliding_window, 0) if sliding_window > 0 else (-1, -1)
 
     def forward(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor):
         context = get_context()
@@ -67,9 +72,10 @@ class Attention(nn.Module):
             o = flash_attn_varlen_func(q, k, v,
                                        max_seqlen_q=context.max_seqlen_q, cu_seqlens_q=context.cu_seqlens_q,
                                        max_seqlen_k=context.max_seqlen_k, cu_seqlens_k=context.cu_seqlens_k,
-                                       softmax_scale=self.scale, causal=True, block_table=context.block_tables)
+                                       softmax_scale=self.scale, causal=True, block_table=context.block_tables,
+                                       softcap=self.softcap, window_size=self.sliding_window)
         else:    # decode
             o = flash_attn_with_kvcache(q.unsqueeze(1), k_cache, v_cache,
                                         cache_seqlens=context.context_lens, block_table=context.block_tables, 
-                                        softmax_scale=self.scale, causal=True)
+                                        softmax_scale=self.scale, causal=True, softcap=self.softcap, window_size=self.sliding_window)
         return o
